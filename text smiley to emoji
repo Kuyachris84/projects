@@ -1,0 +1,14 @@
+#Custom def with parameters using 'lmao'
+def lmao(helloface):
+    # Replace :) with 🙂
+    helloface = helloface.replace(":)", "🙂")
+
+    # Replace :( with 🙁
+    helloface = helloface.replace(":(", "🙁")
+
+    return helloface
+
+#User puts hello with smiley face up or down
+input_text = input("Say hello with a smiley face: ")
+userinput_newface = lmao(input_text)
+print(userinput_newface)
