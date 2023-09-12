@@ -1,0 +1,25 @@
+x = float(input("what is x?: ")) # use 999
+y = float(input("what is y?: ")) # use 1
+
+z = round(x + y, 2) #will round to the tenth place
+
+z = round(x + y) #will rounld with no decimals
+
+print("The answer is ", z) #will print 1000
+
+#format answer with a comma using f-string
+print(f"{z:,}") # will print 1,000
+
+#############################################
+
+x = float(input("what is x?: "))
+y = float(input("what is y?: "))
+
+# OLD WAY:  z = round(x / y, 2)
+
+# f-string way
+z = x / y
+
+print((f"{z:.2f}"))
+
+#will round answer to two decimal places using f-string
