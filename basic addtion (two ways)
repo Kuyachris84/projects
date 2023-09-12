@@ -1,0 +1,15 @@
+#old way to do math
+x = input("what is x?: ")
+y = input("what is y?: ")
+
+z = int(y) + int(x)
+
+print(z)
+
+
+#simplified way to do math (less lines)
+
+x = int(input("what is x?: "))
+y = int(input("what is y?: "))
+
+print("The answer is ", x + y)
