@@ -1,0 +1,18 @@
+#function that calculates length of name and times it by 9, will print hello + name + number * 9 when function is called.
+def lucky_number(name):
+    number = len(name) * 9
+    print("Hello " + name + ". Your lucky number is " +str(number))
+
+lucky_number("Jake")
+lucky_number("Michael")
+lucky_number("Chris")
+lucky_number("Michelle")
+
+#user inputs their name and gets, length of name gets multiplied by 9
+
+print("What is your name? ")
+
+lucky_number(input())
+
+print("Press Enter to close app")
+input()
