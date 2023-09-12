@@ -1,0 +1,20 @@
+# FIGURING OUT HOUR WAGE WITH OVERTIME USING IF/ELSE STATEMENTS
+
+hours = input("Enter hours: ")
+rate_per_hour = input("Enter rate per hour: ")
+
+try:
+    hours = float(hours)
+    rate_per_hour = float(rate_per_hour)
+except:
+    print("Error, please enter numeric input")
+    quit()
+
+if hours <= 40:
+    gross_pay = hours * rate_per_hour
+else:
+    regular_pay = 40 * rate_per_hour
+    overtime_pay = (hours - 40) * (1.5 * rate_per_hour)
+    gross_pay = regular_pay + overtime_pay
+
+print(gross_pay)
