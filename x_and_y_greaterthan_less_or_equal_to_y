@@ -1,0 +1,13 @@
+#simple x and y, is x greater than, less than, or equal to y.  User inputs x and y.
+
+x = int(input("What is x? "))
+y = int(input("What is y? "))
+
+print(f"X = {x} and Y = {y}")
+
+if x < y:
+    print("X is less than Y")
+if x > y:
+    print("X is greater than Y")
+if x == y:
+    print("X is equal to Y")
