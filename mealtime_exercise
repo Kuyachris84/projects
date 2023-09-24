@@ -25,10 +25,10 @@ def determine_meal_time(time):
         return None
 
 def main():
-    user_input = input("What time is it? ")
+    time = input("What time is it? ")
 
     try:
-        meal_time = determine_meal_time(user_input)
+        meal_time = determine_meal_time(time)
 
         if meal_time:
             print(meal_time)
