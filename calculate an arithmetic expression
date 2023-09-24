@@ -1,0 +1,36 @@
+# Function to calculate the result of the arithmetic expression
+def calculate_expression(x, operator, z):
+    x = float(x)
+    z = float(z)
+
+    if operator == '+':
+        result = x + z
+    elif operator == '-':
+        result = x - z
+    elif operator == '*':
+        result = x * z
+    elif operator == '/':
+        if z == 0:
+            return "Division by zero is not allowed"
+        result = x / z
+    else:
+        return "Invalid operator"
+
+    return round(result, 1)
+
+
+# Input from the user
+expression = input("Enter an arithmetic expression in the format 'x y z': ")
+
+# Split the input into its components (x, operator, z)
+components = expression.split()
+
+if len(components) != 3:
+    print("Invalid input format. Please use 'x y z' format.")
+else:
+    x, operator, z = components
+    result = calculate_expression(x, operator, z)
+    if isinstance(result, str):
+        print(result)  # Handle error messages
+    else:
+        print("Result:", result)
