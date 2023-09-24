@@ -1,0 +1,25 @@
+# Prompt the user for a greeting
+user_greeting = input("Please enter a greeting: ")
+
+
+# Remove leading and trailing whitespace and convert the greeting to lowercase
+user_greeting = user_greeting.strip().lower()
+
+#pick first letter
+first_letter = user_greeting[0]
+
+# Check the conditions and output the corresponding result
+if user_greeting == "hello":
+    print("$0")
+elif user_greeting == "hello, newman":
+    print("$0")
+elif first_letter == "h":
+    print("$20")
+else:
+    print("$100")
+
+#In a file called bank.py, implement a program that prompts the user for a
+# greeting. If the greeting starts with “hello”, output $0. If the greeting
+# starts with an “h” (but not “hello”), output $20. Otherwise, output $100.
+# Ignore any leading whitespace in the user’s greeting, and treat the user’s
+# greeting case-insensitively.
