@@ -1,0 +1,25 @@
+# Get the user's input for the filename
+file_name = input("File name: ")
+
+# Split the filename into its base name and extension
+base_name, file_extension = file_name.rsplit('.', 1)
+
+match file_extension:
+    case "jpeg" | "png" | "gif" | "bmp":
+        print(f"image/{file_extension}")
+    case "jpg":
+        print("image/jpeg")
+    case "zip" | "pdf" | "psd":
+        print(f"application/{file_extension}")
+    case "PDF":
+        print("application/pdf")
+    case "txt" | "doc" | "docx" | "odt":
+        print("text/plain")
+    case "bin":
+        print("application/octet-stream")
+    case "mp4" | "mkv" | "avi" | "mpg" | "mpeg":
+        print(f"video/{file_extension}")
+    case "mp3" | "wav" | "wma":
+        print(f"plain/{file_extension}")
+    case _:
+        print("application/octet-stream")
