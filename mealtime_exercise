@@ -1,0 +1,39 @@
+def convert(time):
+    # Split the time string into hours and minutes
+    hours, minutes = map(int, time.split(':'))
+    # Calculate the corresponding number of hours as a float
+    return hours + minutes / 60.0
+
+def determine_meal_time(time):
+    # Define the meal time ranges in 24-hour format
+    breakfast_start = 7.0
+    breakfast_end = 8.0
+    lunch_start = 12.0
+    lunch_end = 13.0
+    dinner_start = 18.0
+    dinner_end = 19.0
+
+    time_in_hours = convert(time)
+
+    if breakfast_start <= time_in_hours <= breakfast_end:
+        return "Breakfast time"
+    elif lunch_start <= time_in_hours <= lunch_end:
+        return "Lunch time"
+    elif dinner_start <= time_in_hours <= dinner_end:
+        return "Dinner time"
+    else:
+        return None
+
+def main():
+    user_input = input("What time is it? ")
+
+    try:
+        meal_time = determine_meal_time(user_input)
+
+        if meal_time:
+            print(meal_time)
+    except ValueError:
+        print("Invalid time format. Please use the format HH:MM.")
+
+if __name__ == "__main__":
+    main()
