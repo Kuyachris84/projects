@@ -11,7 +11,7 @@
     "build:electron": "esbuild electron/main.ts --bundle --platform=node --format=cjs --outfile=electron-dist/main.cjs --external:electron",
     "preview": "vite preview",
     "test": "vitest run",
-    "pack:win": "npm run build && npm run build:electron && electron-builder --win portable --x64"
+    "pack:win": "npm run build && npm run build:electron && electron-builder --win dir --x64 && node electron/set-icon.mjs && electron-builder --win portable --x64 --prepackaged release/win-unpacked"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -22,12 +22,13 @@
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
-    "typescript": "^5.7.3",
-    "vite": "^6.2.0",
-    "vitest": "^3.0.8",
     "electron": "^33.4.11",
     "electron-builder": "^25.1.8",
-    "esbuild": "^0.25.1"
+    "esbuild": "^0.25.1",
+    "resedit": "^3.1.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.2.0",
+    "vitest": "^3.0.8"
   },
   "build": {
     "appId": "com.powerball.timelinepredictor",
@@ -38,6 +39,7 @@
     "files": [
       "electron-dist/**/*",
       "dist/**/*",
+      "build/icon.ico",
       "package.json",
       "!node_modules/**/*"
     ],
@@ -45,13 +47,20 @@
       {
         "from": "src/data/bundled-draws.json",
         "to": "bundled-draws.json"
+      },
+      {
+        "from": "build/icon.ico",
+        "to": "icon.ico"
       }
     ],
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "artifactName": "Powerball-Timeline-Predictor.exe",

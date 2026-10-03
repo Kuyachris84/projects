@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, nativeImage, type NativeImage } from "electron";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -13,6 +13,21 @@ function contentType(filePath: string): string {
   if (filePath.endsWith(".png")) return "image/png";
   if (filePath.endsWith(".ico")) return "image/x-icon";
   return "application/octet-stream";
+}
+
+function windowIcon(): NativeImage | undefined {
+  const resourcesPath = (process as { resourcesPath?: unknown }).resourcesPath;
+  const candidates = [
+    typeof resourcesPath === "string" ? path.join(resourcesPath, "icon.ico") : "",
+    path.join(app.getAppPath(), "build", "icon.ico"),
+    path.join(process.cwd(), "build", "icon.ico"),
+  ].filter((candidate) => candidate.length > 0);
+  for (const candidate of candidates) {
+    if (!existsSync(candidate)) continue;
+    const image = nativeImage.createFromPath(candidate);
+    if (!image.isEmpty()) return image;
+  }
+  return undefined;
 }
 
 function uiRoot(): string {
@@ -99,6 +114,7 @@ async function openWindow(): Promise<void> {
     minWidth: 360,
     minHeight: 640,
     title: "Powerball Timeline Predictor",
+    icon: windowIcon(),
     autoHideMenuBar: true,
     webPreferences: {
       contextIsolation: true,
