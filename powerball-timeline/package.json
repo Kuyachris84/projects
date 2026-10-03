@@ -2,12 +2,16 @@
   "name": "powerball-timeline-predictor",
   "private": true,
   "version": "1.0.0",
+  "description": "One deterministic line for the next Powerball drawing, summarized from past official results.",
   "type": "module",
+  "main": "electron-dist/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:electron": "esbuild electron/main.ts --bundle --platform=node --format=cjs --outfile=electron-dist/main.cjs --external:electron",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "pack:win": "npm run build && npm run build:electron && electron-builder --win portable --x64"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -20,6 +24,41 @@
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.3",
     "vite": "^6.2.0",
-    "vitest": "^3.0.8"
+    "vitest": "^3.0.8",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.25.1"
+  },
+  "build": {
+    "appId": "com.powerball.timelinepredictor",
+    "productName": "Powerball Timeline Predictor",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron-dist/**/*",
+      "dist/**/*",
+      "package.json",
+      "!node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "src/data/bundled-draws.json",
+        "to": "bundled-draws.json"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "Powerball-Timeline-Predictor.exe",
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "Powerball-Timeline-Predictor.exe"
+    }
   }
 }

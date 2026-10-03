@@ -20,10 +20,13 @@ interface CacheEntry {
 let cache: CacheEntry | null = null;
 
 function bundledPath(): string {
+  const resourcesPath = (process as { resourcesPath?: unknown }).resourcesPath;
   const candidates = [
+    process.env.POWERBALL_BUNDLED_DRAWS,
     path.join(process.cwd(), "src/data/bundled-draws.json"),
     path.join(process.cwd(), "powerball-timeline/src/data/bundled-draws.json"),
-  ];
+    typeof resourcesPath === "string" ? path.join(resourcesPath, "bundled-draws.json") : undefined,
+  ].filter((candidate): candidate is string => Boolean(candidate));
   for (const candidate of candidates) {
     if (existsSync(candidate)) return candidate;
   }
