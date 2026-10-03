@@ -11,7 +11,7 @@
     "build:electron": "esbuild electron/main.ts --bundle --platform=node --format=cjs --outfile=electron-dist/main.cjs --external:electron",
     "preview": "vite preview",
     "test": "vitest run",
-    "pack:win": "npm run build && npm run build:electron && electron-builder --win dir --x64 && node electron/set-icon.mjs && electron-builder --win portable --x64 --prepackaged release/win-unpacked"
+    "pack:win": "npm run build && npm run build:electron && electron-builder --win dir --x64 && node electron/set-icon.mjs && electron-builder --win nsis --x64 --prepackaged release/win-unpacked"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -32,7 +32,7 @@
   },
   "build": {
     "appId": "com.powerball.timelinepredictor",
-    "productName": "Powerball Timeline Predictor",
+    "productName": "PowerBall Predictor",
     "directories": {
       "output": "release"
     },
@@ -57,17 +57,29 @@
       "icon": "build/icon.ico",
       "target": [
         {
-          "target": "portable",
+          "target": "nsis",
           "arch": [
             "x64"
           ]
         }
       ],
-      "artifactName": "Powerball-Timeline-Predictor.exe",
       "signAndEditExecutable": false
     },
-    "portable": {
-      "artifactName": "Powerball-Timeline-Predictor.exe"
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PowerBall Predictor",
+      "uninstallDisplayName": "PowerBall Predictor",
+      "artifactName": "PowerBall-Predictor-Setup.exe",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "include": "build/installer.nsh",
+      "menuCategory": false
     }
   }
 }

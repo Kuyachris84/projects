@@ -19,9 +19,9 @@ The page polls that route every 30 seconds. The server reads [New York Open Data
 
 ## Windows
 
-A portable Windows exe is published as a GitHub release asset named `Powerball-Timeline-Predictor.exe`. Copy that one file to a Windows PC and double-click it. It does not need an installer, administrator rights, or a separate Node.js install. The same results check is bundled inside the exe and still refreshes when a new drawing is published.
+The Windows build is an NSIS setup wizard named `PowerBall-Predictor-Setup.exe`. It installs PowerBall Predictor for the current user, without administrator rights, and adds a desktop shortcut and a Start menu shortcut named `PowerBall Predictor`. The same results check is included and still refreshes when a new drawing is published.
 
-To build that exe from this repo (the binary is not committed):
+To build the installer from this repo (the binary is not committed):
 
 ```bash
 npm run pack:win

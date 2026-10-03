@@ -99,7 +99,7 @@ function startServer(root: string): Promise<{ server: http.Server; port: number 
         reject(new Error("The local app server did not report a port."));
         return;
       }
-      console.log(`Powerball Timeline Predictor http://127.0.0.1:${address.port}/`);
+      console.log(`PowerBall Predictor http://127.0.0.1:${address.port}/`);
       resolve({ server, port: address.port });
     });
   });
@@ -113,7 +113,7 @@ async function openWindow(): Promise<void> {
     height: 900,
     minWidth: 360,
     minHeight: 640,
-    title: "Powerball Timeline Predictor",
+    title: "PowerBall Predictor",
     icon: windowIcon(),
     autoHideMenuBar: true,
     webPreferences: {
