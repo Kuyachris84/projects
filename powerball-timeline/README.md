@@ -1,6 +1,6 @@
 # Powerball Timeline Predictor
 
-One deterministic line for the next Powerball drawing, summarized from past official results. Each drawing is an independent random event, so the line does not improve the odds of winning.
+Pattern lines for the next Powerball drawing, summarized from past official results. The page opens on the highest-scoring line. New numbers replaces it with the next distinct line for that same drawing.
 
 ## Run
 

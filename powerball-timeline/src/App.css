@@ -64,20 +64,6 @@ h1 {
   line-height: 1.5;
 }
 
-.disclaimer {
-  margin: 20px 0 0;
-  padding: 14px 16px;
-  border: 1px solid var(--sand-line);
-  border-radius: 14px;
-  background: var(--sand);
-  color: var(--sand-ink);
-  line-height: 1.5;
-}
-
-.disclaimer strong {
-  color: #4e3d1e;
-}
-
 .banner,
 .loading {
   margin: 18px 0 0;
@@ -225,6 +211,28 @@ footer p {
   font-size: 0.78rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.new-numbers {
+  appearance: none;
+  margin-top: 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font: inherit;
+  font-weight: 650;
+  padding: 11px 18px;
+  cursor: pointer;
+}
+
+.new-numbers:hover {
+  background: #8e191c;
+}
+
+.new-numbers:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
 }
 
 .reasons {

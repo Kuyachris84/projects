@@ -2,7 +2,7 @@
   "name": "powerball-timeline-predictor",
   "private": true,
   "version": "1.0.0",
-  "description": "One deterministic line for the next Powerball drawing, summarized from past official results.",
+  "description": "Pattern lines for the next Powerball drawing, summarized from past official results.",
   "type": "module",
   "main": "electron-dist/main.cjs",
   "scripts": {

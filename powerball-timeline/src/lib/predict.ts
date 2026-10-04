@@ -3,7 +3,7 @@ import { formatLongDate } from "./schedule";
 
 export const RECENT_WINDOW = 30;
 
-export type Signal = "frequency" | "gap" | "recent";
+export type Signal = "frequency" | "gap" | "recent" | "pairing";
 
 export interface PickedNumber {
   number: number;
@@ -23,44 +23,75 @@ interface Stats {
   gap: number;
   recent: number;
   lastDate: string | null;
+  frequency: number;
+  gapScore: number;
+  recentScore: number;
+  individual: number;
 }
 
-const SIGNAL_ORDER: Signal[] = ["gap", "frequency", "recent"];
+interface RankedLine {
+  white: number[];
+  powerball: number;
+  score: number;
+}
+
+interface Analysis {
+  total: number;
+  white: Stats[];
+  powerball: Stats[];
+  pair: Uint16Array[];
+  whitePb: Uint16Array[];
+  maxPair: number;
+  maxWhitePb: number;
+  ranked: RankedLine[];
+}
+
+const POOL_SEEDS = 12;
+const POOL_LIMIT = 16;
+
+let cachedSignature = "";
+let cachedAnalysis: Analysis | null = null;
 
 function times(count: number): string {
   return `${count} time${count === 1 ? "" : "s"}`;
-}
-
-function formatApprox(value: number): string {
-  const rounded = Math.round(value * 10) / 10;
-  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
-}
-
-function aboutTimes(value: number): string {
-  const label = formatApprox(value);
-  return label === "1" ? "1 time" : `${label} times`;
-}
-
-function aboutEvery(value: number): string {
-  const label = formatApprox(value);
-  return label === "1" ? "every 1 drawing" : `every ${label} drawings`;
 }
 
 function formatCount(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
+function unit(value: number, max: number): number {
+  return max === 0 ? 0 : value / max;
+}
+
+function historySignature(history: readonly Draw[]): string {
+  let hash = 2166136261;
+  for (const draw of history) {
+    for (let index = 0; index < draw.date.length; index += 1) {
+      hash ^= draw.date.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    for (const number of draw.white) {
+      hash ^= number;
+      hash = Math.imul(hash, 16777619);
+    }
+    hash ^= draw.powerball;
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${history.length}:${hash >>> 0}`;
+}
+
 function statsFor(draws: readonly Draw[], min: number, max: number, read: (draw: Draw) => number[]): Stats[] {
   const total = draws.length;
   const windowStart = Math.max(0, total - RECENT_WINDOW);
-  const stats = new Map<number, Stats>();
+  const stats: Stats[] = [];
   for (let number = min; number <= max; number += 1) {
-    stats.set(number, { number, count: 0, gap: total, recent: 0, lastDate: null });
+    stats[number] = { number, count: 0, gap: total, recent: 0, lastDate: null, frequency: 0, gapScore: 0, recentScore: 0, individual: 0 };
   }
 
   draws.forEach((draw, index) => {
     for (const number of read(draw)) {
-      const entry = stats.get(number);
+      const entry = stats[number];
       if (!entry) continue;
       entry.count += 1;
       entry.lastDate = draw.date;
@@ -69,76 +100,25 @@ function statsFor(draws: readonly Draw[], min: number, max: number, read: (draw:
     }
   });
 
-  return [...stats.values()];
-}
-
-function takeBest(stats: readonly Stats[], used: ReadonlySet<number>, score: (entry: Stats) => number): Stats {
-  let best: Stats | null = null;
-  for (const entry of stats) {
-    if (used.has(entry.number)) continue;
-    if (
-      !best ||
-      score(entry) > score(best) ||
-      (score(entry) === score(best) && entry.number < best.number)
-    ) {
-      best = entry;
-    }
-  }
-  if (!best) throw new Error("No number was available to select.");
-  return best;
-}
-
-function signalScores(entry: Stats, total: number, pool: "white" | "powerball"): Record<Signal, number> {
-  const perDraw = pool === "white" ? 5 / 69 : 1 / 26;
-  const expectedCount = total * perDraw;
-  const expectedGap = perDraw === 0 ? 0 : 1 / perDraw;
-  const window = Math.min(RECENT_WINDOW, total);
-  const expectedRecent = window * perDraw;
-  return {
-    frequency: expectedCount === 0 ? 0 : (entry.count - expectedCount) / expectedCount,
-    gap: expectedGap === 0 ? 0 : (entry.gap - expectedGap) / expectedGap,
-    recent: expectedRecent === 0 ? 0 : (entry.recent - expectedRecent) / expectedRecent,
-  };
-}
-
-function dominantSignal(scores: Record<Signal, number>): Signal {
-  let best: Signal = SIGNAL_ORDER[0]!;
-  let bestScore = -Infinity;
-  for (const signal of SIGNAL_ORDER) {
-    if (scores[signal] > bestScore) {
-      best = signal;
-      bestScore = scores[signal];
-    }
-  }
-  return best;
-}
-
-function describe(entry: Stats, signal: Signal, total: number, pool: "white" | "powerball"): string {
-  const kind = pool === "white" ? "white ball" : "Powerball";
-  const perDraw = pool === "white" ? 5 / 69 : 1 / 26;
-  const window = Math.min(RECENT_WINDOW, total);
-  const expectedCount = total * perDraw;
-  const expectedGap = 1 / perDraw;
-  const expectedRecent = window * perDraw;
-
-  if (signal === "frequency") {
-    return `Long-run frequency: ${entry.number} has appeared ${times(entry.count)} in ${formatCount(total)} drawings. A typical ${kind} appears about ${aboutTimes(expectedCount)} over that span.`;
+  let maxCount = 0;
+  let maxGap = 0;
+  let maxRecent = 0;
+  for (let number = min; number <= max; number += 1) {
+    const entry = stats[number]!;
+    if (entry.count > maxCount) maxCount = entry.count;
+    if (entry.gap > maxGap) maxGap = entry.gap;
+    if (entry.recent > maxRecent) maxRecent = entry.recent;
   }
 
-  if (signal === "recent") {
-    return `Recent window: in the last ${formatCount(window)} drawings, ${entry.number} has appeared ${times(entry.recent)}. A typical ${kind} appears about ${aboutTimes(expectedRecent)} in that window.`;
+  for (let number = min; number <= max; number += 1) {
+    const entry = stats[number]!;
+    entry.frequency = unit(entry.count, maxCount);
+    entry.gapScore = unit(entry.gap, maxGap);
+    entry.recentScore = unit(entry.recent, maxRecent);
+    entry.individual = (entry.frequency + entry.gapScore + entry.recentScore) / 3;
   }
 
-  if (!entry.lastDate) {
-    return `Gap since it last hit: ${entry.number} has not appeared in these ${formatCount(total)} drawings. A typical ${kind} shows up about ${aboutEvery(expectedGap)}.`;
-  }
-
-  if (entry.gap === 0) {
-    return `Gap since it last hit: ${entry.number} appeared in the most recent drawing on ${formatLongDate(entry.lastDate)}. A typical ${kind} shows up about ${aboutEvery(expectedGap)}.`;
-  }
-
-  const drawingWord = entry.gap === 1 ? "drawing" : "drawings";
-  return `Gap since it last hit: ${entry.number} last appeared on ${formatLongDate(entry.lastDate)}, ${formatCount(entry.gap)} ${drawingWord} ago. A typical ${kind} shows up about ${aboutEvery(expectedGap)}.`;
+  return stats;
 }
 
 function normalize(draws: readonly Draw[]): Draw[] {
@@ -153,69 +133,258 @@ function normalize(draws: readonly Draw[]): Draw[] {
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
+function combinations(items: readonly number[], size: number): number[][] {
+  const lines: number[][] = [];
+  const current: number[] = [];
+
+  function walk(start: number): void {
+    if (current.length === size) {
+      lines.push([...current]);
+      return;
+    }
+    for (let index = start; index < items.length; index += 1) {
+      current.push(items[index]!);
+      walk(index + 1);
+      current.pop();
+    }
+  }
+
+  walk(0);
+  return lines;
+}
+
+function buildPool(white: readonly Stats[], pair: readonly Uint16Array[]): number[] {
+  const ranked = white
+    .filter((entry): entry is Stats => Boolean(entry))
+    .sort((a, b) => b.individual - a.individual || a.number - b.number);
+  const pool = new Set<number>();
+  for (const entry of ranked) {
+    if (pool.size >= POOL_SEEDS) break;
+    pool.add(entry.number);
+  }
+
+  for (const seed of [...pool]) {
+    if (pool.size >= POOL_LIMIT) break;
+    let partner = 0;
+    let partnerCount = -1;
+    for (let number = 1; number <= 69; number += 1) {
+      if (number === seed || pool.has(number)) continue;
+      const count = pair[seed]![number] ?? 0;
+      if (count > partnerCount || (count === partnerCount && (partner === 0 || number < partner))) {
+        partner = number;
+        partnerCount = count;
+      }
+    }
+    if (partner > 0 && partnerCount > 0) pool.add(partner);
+  }
+
+  for (const entry of ranked) {
+    if (pool.size >= POOL_LIMIT) break;
+    pool.add(entry.number);
+  }
+
+  return [...pool].sort((a, b) => a - b);
+}
+
+function analyze(history: readonly Draw[]): Analysis {
+  const signature = historySignature(history);
+  if (cachedAnalysis && cachedSignature === signature) return cachedAnalysis;
+
+  const total = history.length;
+  const white = statsFor(history, 1, 69, (draw) => draw.white);
+  const powerball = statsFor(history, 1, 26, (draw) => [draw.powerball]);
+  const pair = Array.from({ length: 70 }, () => new Uint16Array(70));
+  const whitePb = Array.from({ length: 70 }, () => new Uint16Array(27));
+  let maxPair = 0;
+  let maxWhitePb = 0;
+
+  for (const draw of history) {
+    for (let left = 0; left < draw.white.length; left += 1) {
+      const a = draw.white[left]!;
+      const withPowerball = whitePb[a]![draw.powerball]! + 1;
+      whitePb[a]![draw.powerball] = withPowerball;
+      if (withPowerball > maxWhitePb) maxWhitePb = withPowerball;
+      for (let right = left + 1; right < draw.white.length; right += 1) {
+        const b = draw.white[right]!;
+        const together = pair[a]![b]! + 1;
+        pair[a]![b] = together;
+        pair[b]![a] = together;
+        if (together > maxPair) maxPair = together;
+      }
+    }
+  }
+
+  const pool = buildPool(white, pair);
+  const ranked: RankedLine[] = [];
+  for (const numbers of combinations(pool, 5)) {
+    let individual = 0;
+    let pairTotal = 0;
+    let pairSamples = 0;
+    for (let left = 0; left < numbers.length; left += 1) {
+      individual += white[numbers[left]!]!.individual;
+      for (let right = left + 1; right < numbers.length; right += 1) {
+        pairTotal += unit(pair[numbers[left]!]![numbers[right]!] ?? 0, maxPair);
+        pairSamples += 1;
+      }
+    }
+    const whiteScore = individual / numbers.length + (pairSamples === 0 ? 0 : pairTotal / pairSamples);
+
+    for (let ball = 1; ball <= 26; ball += 1) {
+      const entry = powerball[ball]!;
+      let paired = 0;
+      for (const number of numbers) paired += unit(whitePb[number]![ball] ?? 0, maxWhitePb);
+      const powerballScore = entry.individual + paired / numbers.length;
+      ranked.push({ white: numbers, powerball: ball, score: whiteScore + powerballScore });
+    }
+  }
+
+  ranked.sort((a, b) => {
+    if (a.score !== b.score) return b.score - a.score;
+    for (let index = 0; index < a.white.length; index += 1) {
+      const diff = a.white[index]! - b.white[index]!;
+      if (diff !== 0) return diff;
+    }
+    return a.powerball - b.powerball;
+  });
+
+  cachedSignature = signature;
+  cachedAnalysis = { total, white, powerball, pair, whitePb, maxPair, maxWhitePb, ranked };
+  return cachedAnalysis;
+}
+
+function strongestWhitePartner(numbers: readonly number[], subject: number, pair: readonly Uint16Array[]): { partner: number; count: number } {
+  let partner = 0;
+  let count = -1;
+  for (const number of numbers) {
+    if (number === subject) continue;
+    const together = pair[subject]![number] ?? 0;
+    if (together > count || (together === count && (partner === 0 || number < partner))) {
+      partner = number;
+      count = together;
+    }
+  }
+  return { partner, count: Math.max(0, count) };
+}
+
+function strongestPowerballPartner(whites: readonly number[], powerball: number, whitePb: readonly Uint16Array[]): { partner: number; count: number } {
+  let partner = 0;
+  let count = -1;
+  for (const number of whites) {
+    const together = whitePb[number]![powerball] ?? 0;
+    if (together > count || (together === count && (partner === 0 || number < partner))) {
+      partner = number;
+      count = together;
+    }
+  }
+  return { partner, count: Math.max(0, count) };
+}
+
+function describe(
+  entry: Stats,
+  signal: Signal,
+  total: number,
+  partner: number,
+  partnerCount: number,
+  pool: "white" | "powerball",
+): string {
+  if (signal === "pairing") {
+    const other = pool === "powerball" ? `white ball ${partner}` : String(partner);
+    const drawingWord = partnerCount === 1 ? "drawing" : "drawings";
+    return `Drawn together: ${entry.number} has appeared with ${other} in ${formatCount(partnerCount)} ${drawingWord}.`;
+  }
+
+  if (signal === "frequency") {
+    return `Long-run frequency: ${entry.number} has appeared ${times(entry.count)} in ${formatCount(total)} drawings.`;
+  }
+
+  if (signal === "recent") {
+    const window = Math.min(RECENT_WINDOW, total);
+    return `Recent window: in the last ${formatCount(window)} drawings, ${entry.number} has appeared ${times(entry.recent)}.`;
+  }
+
+  if (!entry.lastDate) {
+    return `Gap since it last appeared: ${entry.number} has not appeared in these ${formatCount(total)} drawings.`;
+  }
+
+  if (entry.gap === 0) {
+    return `Gap since it last appeared: ${entry.number} appeared in the most recent drawing on ${formatLongDate(entry.lastDate)}.`;
+  }
+
+  const drawingWord = entry.gap === 1 ? "drawing" : "drawings";
+  return `Gap since it last appeared: ${entry.number} last appeared on ${formatLongDate(entry.lastDate)}, ${formatCount(entry.gap)} ${drawingWord} ago.`;
+}
+
+function patternFor(entry: Stats, partnerCount: number, maxPair: number): Signal {
+  const options: Array<{ signal: Signal; score: number }> = [
+    { signal: "pairing", score: partnerCount > 0 ? unit(partnerCount, maxPair) : -1 },
+    { signal: "frequency", score: entry.frequency },
+    { signal: "gap", score: entry.gapScore },
+    { signal: "recent", score: entry.recentScore },
+  ];
+  let best: Signal = "frequency";
+  let bestScore = -1;
+  for (const option of options) {
+    if (option.score > bestScore) {
+      best = option.signal;
+      bestScore = option.score;
+    }
+  }
+  return best;
+}
+
+function pickNumber(
+  entry: Stats,
+  analysis: Analysis,
+  companions: readonly number[],
+  pool: "white" | "powerball",
+): PickedNumber {
+  const match =
+    pool === "white"
+      ? strongestWhitePartner(companions, entry.number, analysis.pair)
+      : strongestPowerballPartner(companions, entry.number, analysis.whitePb);
+  const maxPair = pool === "white" ? analysis.maxPair : analysis.maxWhitePb;
+  const signal = patternFor(entry, match.count, maxPair);
+  return {
+    number: entry.number,
+    signal,
+    reason: describe(entry, signal, analysis.total, match.partner, match.count, pool),
+  };
+}
+
 /**
- * One deterministic line for a target drawing.
- * White balls are filled in a fixed order: best long-run frequency, longest
- * gap since last hit, hottest count in the recent window, then the next
- * frequency and the next gap. The Powerball is the number whose strongest
- * of those three signals, relative to the usual rate, ranks highest.
- * Ties always keep the lower number. The target date labels the line and
- * does not reshuffle it.
+ * Pattern lines for one target drawing, best score first.
+ * Each white number and Powerball is scored from long-run frequency, the gap
+ * since it last appeared, and its count in the recent window. A line also
+ * scores the pairings among its white balls and between those balls and the
+ * Powerball. Index 0 is the highest-scoring line. A larger index is the next
+ * distinct line in that same order. Ties break toward the lower numbers.
+ * The target date labels the line and does not change the score.
  */
-export function selectLine(draws: readonly Draw[], targetDrawDate: string): Line {
+export function selectLine(draws: readonly Draw[], targetDrawDate: string, index = 0): Line {
+  if (!Number.isInteger(index) || index < 0) {
+    throw new Error("Line index must be a non-negative integer.");
+  }
+
   const history = normalize(draws);
   if (history.length === 0) {
     throw new Error("Cannot build a line without drawing history.");
   }
 
-  const whiteStats = statsFor(history, 1, 69, (draw) => draw.white);
-  const used = new Set<number>();
-  const steps: Array<{ signal: Signal; score: (entry: Stats) => number }> = [
-    { signal: "frequency", score: (entry) => entry.count },
-    { signal: "gap", score: (entry) => entry.gap },
-    { signal: "recent", score: (entry) => entry.recent },
-    { signal: "frequency", score: (entry) => entry.count },
-    { signal: "gap", score: (entry) => entry.gap },
-  ];
-
-  const white = steps.map((step) => {
-    const picked = takeBest(whiteStats, used, step.score);
-    used.add(picked.number);
-    return {
-      number: picked.number,
-      signal: step.signal,
-      reason: describe(picked, step.signal, history.length, "white"),
-    };
-  });
-  white.sort((a, b) => a.number - b.number);
-
-  const powerballStats = statsFor(history, 1, 26, (draw) => [draw.powerball]);
-  let powerballPick: Stats | null = null;
-  let powerballSignal: Signal = "gap";
-  let powerballScore = -Infinity;
-  for (const entry of powerballStats) {
-    const scores = signalScores(entry, history.length, "powerball");
-    const signal = dominantSignal(scores);
-    const score = scores[signal];
-    if (
-      !powerballPick ||
-      score > powerballScore ||
-      (score === powerballScore && entry.number < powerballPick.number)
-    ) {
-      powerballPick = entry;
-      powerballSignal = signal;
-      powerballScore = score;
-    }
+  const analysis = analyze(history);
+  const chosen = analysis.ranked[index];
+  if (!chosen) {
+    throw new Error("No further distinct pattern line is available.");
   }
-  if (!powerballPick) throw new Error("Cannot choose a Powerball.");
 
-  return {
-    targetDrawDate,
-    white,
-    powerball: {
-      number: powerballPick.number,
-      signal: powerballSignal,
-      reason: describe(powerballPick, powerballSignal, history.length, "powerball"),
-    },
-  };
+  const white = chosen.white.map((number) =>
+    pickNumber(analysis.white[number]!, analysis, chosen.white, "white"),
+  );
+  const powerball = pickNumber(
+    analysis.powerball[chosen.powerball]!,
+    analysis,
+    chosen.white,
+    "powerball",
+  );
+
+  return { targetDrawDate, white, powerball };
 }

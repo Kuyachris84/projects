@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DrawsResponse } from "./types";
 import { selectLine } from "./lib/predict";
 import {
@@ -36,6 +36,7 @@ export default function App() {
   const [now, setNow] = useState(() => new Date());
   const [payload, setPayload] = useState<DrawsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [steps, setSteps] = useState<Record<string, number>>({});
   const timeZone = deviceTimeZone();
 
   useEffect(() => {
@@ -74,7 +75,12 @@ export default function App() {
   }, []);
 
   const target = payload ? resolveTarget(now, payload.draws.map((draw) => draw.date)) : null;
-  const line = payload && target ? selectLine(payload.draws, target.easternDate) : null;
+  const targetDate = target?.easternDate ?? null;
+  const step = targetDate ? steps[targetDate] ?? 0 : 0;
+  const line = useMemo(() => {
+    if (!payload || !targetDate) return null;
+    return selectLine(payload.draws, targetDate, step);
+  }, [payload, targetDate, step]);
   const countdown = target ? countdownParts(target.instant, now) : null;
   const when = target ? formatInstant(target.instant, timeZone) : null;
   const recent = payload ? payload.draws.slice(-TIMELINE_COUNT) : [];
@@ -84,11 +90,7 @@ export default function App() {
       <header className="masthead">
         <p className="kicker">Historical pattern summary</p>
         <h1>Powerball Timeline Predictor</h1>
-        <p className="lede">One line for the next drawing, summarized from past official results.</p>
-        <p className="disclaimer" data-testid="disclaimer">
-          <strong>Disclaimer.</strong> Each drawing is an independent random event, so this is a historical pattern
-          summary and does not improve the odds of winning.
-        </p>
+        <p className="lede">A pattern line for the next drawing, summarized from past official results.</p>
       </header>
 
       {error && !payload ? (
@@ -159,6 +161,17 @@ export default function App() {
                 <p className="ball-caption">Powerball</p>
               </div>
             </div>
+            <button
+              type="button"
+              className="new-numbers"
+              data-testid="new-numbers"
+              onClick={() => {
+                if (!targetDate) return;
+                setSteps((current) => ({ ...current, [targetDate]: (current[targetDate] ?? 0) + 1 }));
+              }}
+            >
+              New numbers
+            </button>
             <h3>Why each number is in this line</h3>
             <ul className="reasons">
               {line.white.map((pick) => (
@@ -198,7 +211,7 @@ export default function App() {
                 <span className="dot dot-next" aria-hidden="true" />
                 <div>
                   <p className="timeline-date">Next · {formatShortDate(target.easternDate)}</p>
-                  <p className="timeline-note">The one line for this drawing is shown above.</p>
+                  <p className="timeline-note">The line for this drawing is shown above.</p>
                 </div>
               </li>
             </ol>
@@ -208,9 +221,9 @@ export default function App() {
 
       <footer>
         <p>
-          Drawing history comes from New York Open Data, Lottery Powerball Winning Numbers, limited to the current
-          number matrix that began October 7, 2015. Drawings are held Monday, Wednesday, and Saturday at 10:59 p.m.
-          Eastern Time.
+          Drawing history comes from New York Open Data Lottery Powerball results, limited to the current number
+          matrix that began October 7, 2015. Drawings are held Monday, Wednesday, and Saturday at 10:59 p.m. Eastern
+          Time.
         </p>
       </footer>
     </div>
