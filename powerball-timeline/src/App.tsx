@@ -89,7 +89,7 @@ export default function App() {
     <div className="page">
       <header className="masthead">
         <p className="kicker">Historical pattern summary</p>
-        <h1>Powerball Timeline Predictor</h1>
+        <h1>PowerBall Predictor</h1>
         <p className="lede">A pattern line for the next drawing, summarized from past official results.</p>
       </header>
 

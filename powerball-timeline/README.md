@@ -1,4 +1,4 @@
-# Powerball Timeline Predictor
+# PowerBall Predictor
 
 Pattern lines for the next Powerball drawing, summarized from past official results. The page opens on the highest-scoring line. New numbers replaces it with the next distinct line for that same drawing.
 
