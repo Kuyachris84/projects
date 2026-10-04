@@ -1,0 +1,85 @@
+{
+  "name": "powerball-timeline-predictor",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Pattern lines for the next Powerball drawing, summarized from past official results.",
+  "type": "module",
+  "main": "electron-dist/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:electron": "esbuild electron/main.ts --bundle --platform=node --format=cjs --outfile=electron-dist/main.cjs --external:electron",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "pack:win": "npm run build && npm run build:electron && electron-builder --win dir --x64 && node electron/set-icon.mjs && electron-builder --win nsis --x64 --prepackaged release/win-unpacked"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.25.1",
+    "resedit": "^3.1.0",
+    "typescript": "^5.7.3",
+    "vite": "^6.2.0",
+    "vitest": "^3.0.8"
+  },
+  "build": {
+    "appId": "com.powerball.timelinepredictor",
+    "productName": "PowerBall Predictor",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron-dist/**/*",
+      "dist/**/*",
+      "build/icon.ico",
+      "package.json",
+      "!node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "src/data/bundled-draws.json",
+        "to": "bundled-draws.json"
+      },
+      {
+        "from": "build/icon.ico",
+        "to": "icon.ico"
+      }
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PowerBall Predictor",
+      "uninstallDisplayName": "PowerBall Predictor",
+      "artifactName": "PowerBall-Predictor-Setup.exe",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "include": "build/installer.nsh",
+      "menuCategory": false
+    }
+  }
+}
